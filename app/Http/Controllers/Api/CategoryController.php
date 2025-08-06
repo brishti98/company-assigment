@@ -31,17 +31,23 @@ class CategoryController extends Controller
 
     public function create(Request $request)
     {
-        $data = $request->all();
-        $result = $this->categoryRepo->create($data);
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+        $result = $this->categoryRepo->create($validated);
 
         return response()->json($result,$result['statusCode']);
     }
 
-    public function update($id, Request $request)
+    public function update(Request $request, $id)
     {
-        $data = $request->all();
-        $data['id'] = $id;
-        $result = $this->categoryRepo->update($data);
+        $request->merge(['id'=>$id]);
+        $validated = $request->validate([
+            'id'    => 'required|integer|exists:mysql.company_category,id',
+            'title' => 'required|string|max:255',
+        ]);
+
+        $result = $this->categoryRepo->update($validated);
 
         return response()->json($result,$result['statusCode']);
     }
@@ -53,8 +59,4 @@ class CategoryController extends Controller
         return response()->json($result,$result['statusCode']);
     }
 
-    public function keywordDetails()
-    {
-
-    }
 }

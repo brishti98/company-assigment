@@ -4,7 +4,8 @@ namespace App\Http\Repositories;
 
 use App\Models\CompanyCategory;
 use App\Http\Helpers\ApiResponseHelper;
-use Illuminate\Support\Facades\Validator;
+use Exception;
+use Illuminate\Support\Facades\Log;
 
 class CompanyCategoryRepo {
 
@@ -13,7 +14,7 @@ class CompanyCategoryRepo {
     public function __construct()
     {
         $this->apiResponse = new ApiResponseHelper;
-        $this->paginate = config('services.api.pagination');
+        $this->paginate = config('services.api.pagination_limit');
     }
     public function list($params)
     {
@@ -41,57 +42,48 @@ class CompanyCategoryRepo {
 
     public function create($params)
     {
-        $validation = Validator::make($params,[
-            'title' => 'required|max:255',
-        ]);
+        try {
+            $data['title'] = $params['title'];
+            $add = CompanyCategory::create($data);
+            Log::info('Add company category: ',['params'=>$data,'id'=>$add->id]);
 
-        if ($validation->fails()) {
-            return $this->apiResponse->validationError($validation->errors()->all());
-        }
-
-        $data['title'] = $params['title'];
-
-        $add = CompanyCategory::create($data);
-        if (!$add)
+            return $this->apiResponse->create($add, 'Company category added.');
+        } catch (Exception $e) {
+            Log::info('Add company category error: '.$e->getMessage());
             return $this->apiResponse->errorMessage('Company category cannot be added.');
-
-        return $this->apiResponse->create($add, 'Company category added.');
+        }
     }
 
     public function update($params)
     {
-        $validation = Validator::make($params,[
-            'id' => 'required|exists:mysql.company_category,id',
-            'title' => 'required|max:255',
-        ]);
+        try {
+            $data['title'] = $params['title'];
 
-        if ($validation->fails()) {
-            return $this->apiResponse->validationError($validation->errors()->all());
-        }
+            $res = CompanyCategory::where('id', $params['id'])
+                                    ->update($data);
+            Log::info('Update company category: ',['params'=>$data,'result'=>$res]);
 
-        $id = $params['id'];
-        unset($params['id']);
-        $data['title'] = $params['title'];
-
-        $res = CompanyCategory::where('id', $id)
-                                ->update($data);
-        if (!$res)
+            return $this->apiResponse->successMessage('Company category updated.');
+        } catch (Exception $e) {
+            Log::info('Update company category error: '.$e->getMessage());
             return $this->apiResponse->updateError('Company category cannot be updated.');
-
-        return $this->apiResponse->successMessage('Company category updated.');
+        }
     }
 
     public function delete($id)
     {
-        $res = CompanyCategory::where('id', $id)->delete();
-        if (!$res)
+        $category = CompanyCategory::find($id);
+        if (!$category)
+            return $this->apiResponse->notFound();
+
+        try {
+            $res = CompanyCategory::where('id', $id)->delete();
+            Log::info('Delete company category: ',['id'=>$id, 'result'=>$res]);
+            return $this->apiResponse->successMessage('Company category deleted.');
+        } catch (Exception $e) {
+            Log::info('Delete company category error: '.$e->getMessage());
             return $this->apiResponse->updateError('Company category cannot be deleted.');
-
-        return $this->apiResponse->successMessage('Company category deleted.');
+        }
     }
 
-    public function keywordDetails()
-    {
-
-    }
 }

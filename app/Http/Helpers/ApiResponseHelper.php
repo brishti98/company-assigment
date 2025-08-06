@@ -75,7 +75,7 @@ class ApiResponseHelper
         return [
             'status'    => $status,
             'message'   => $message,
-            'statusCode' => 401,
+            'statusCode' => 500,
         ];
     }
 

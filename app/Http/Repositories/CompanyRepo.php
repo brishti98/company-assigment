@@ -6,7 +6,6 @@ use App\Http\Helpers\ApiResponseHelper;
 use App\Models\Company;
 use Exception;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class CompanyRepo {
 
@@ -15,7 +14,7 @@ class CompanyRepo {
     public function __construct()
     {
         $this->apiResponse = new ApiResponseHelper;
-        $this->paginate = config('services.api.pagination');
+        $this->paginate = config('services.api.pagination_limit');
     }
 
     public function list($params)
@@ -41,16 +40,6 @@ class CompanyRepo {
 
     public function create($params)
     {
-        $validation = Validator::make($params,[
-            'title'       => 'required|max:255',
-            'image'       => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            'category_id' => 'exists:mysql.company_category,id',
-        ]);
-
-        if ($validation->fails()) {
-            return $this->apiResponse->validationError($validation->errors()->all());
-        }
-
         try {
             $filePath = null;
             if (isset($params['image']) && $params['image']) {
@@ -81,26 +70,12 @@ class CompanyRepo {
 
     public function update($params)
     {
-        $validation = Validator::make($params,[
-            'id'          => 'required|exists:mysql.company,id',
-            'title'       => 'required|max:255',
-            'image'       => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            'category_id' => 'exists:mysql.company_category,id',
-        ]);
-
-        if ($validation->fails()) {
-            return $this->apiResponse->validationError($validation->errors()->all());
-        }
-
-        $id = $params['id'];
-        unset($params['id']);
-
-        $company = Company::find($id);
+        $company = Company::find($params['id']);
         try {
             $data = [
                 'title'       => $params['title'],
                 'category_id' => $params['category_id'] ?? null,
-                'description' => $params['description'],
+                'description' => $params['description'] ?? null,
                 'status'      => 1
             ];
 
@@ -117,11 +92,11 @@ class CompanyRepo {
                 $data['image'] = 'images/company/'.$name;
             }
 
-            $res = Company::where('id', $id)
+            $res = Company::where('id', $params['id'])
                             ->update($data);
 
             Log::info('Update company: ', ['params'=>$data, 'result'=>$res]);
-            return $this->apiResponse->successMessage('Company updated.');
+            return $this->apiResponse->successMessage('Company details updated.');
         } catch (Exception $e) {
             Log::info('Update company error: '.$e->getMessage());
             return $this->apiResponse->updateError('Failed to update company details.');
@@ -131,6 +106,8 @@ class CompanyRepo {
     public function delete($id)
     {
         $company = Company::find($id);
+        if (!$company)
+            return $this->apiResponse->notFound();
 
         try {
             $res = Company::where('id', $id)->delete();

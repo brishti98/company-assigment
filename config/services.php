@@ -33,7 +33,7 @@ return [
 
     'api' => [
         'key' => env('API_KEY'),
-        'pagination' => 10,
+        'pagination_limit' => 10,
     ]
 
 ];

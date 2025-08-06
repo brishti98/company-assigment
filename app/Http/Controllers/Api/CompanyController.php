@@ -30,14 +30,30 @@ class CompanyController extends Controller
 
     public function create(Request $request)
     {
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'image'       => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'category_id' => 'integer|exists:mysql.company_category,id',
+            'description' => 'string'
+        ]);
+
         $data = $request->all();
         $result = $this->companyRepo->create($data);
 
         return response()->json($result,$result['statusCode']);
     }
 
-    public function update($id, Request $request)
+    public function update(Request $request, $id)
     {
+        $request->merge(['id'=>$id]);
+        $request->validate([
+            'id'          => 'required|integer|exists:mysql.company,id',
+            'title'       => 'required|string|max:255',
+            'image'       => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'category_id' => 'integer|exists:mysql.company_category,id',
+            'description' => 'string'
+        ]);
+
         $data = $request->all();
         $data['id'] = $id;
         $result = $this->companyRepo->update($data);
